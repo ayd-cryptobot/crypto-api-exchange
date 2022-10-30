@@ -1,0 +1,36 @@
+{
+  "name": "mediastack",
+  "version": "1.0.0",
+  "description": "mediaStack docker",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "npx nodemon src/app.js"
+  },
+  "author": "Martin de Jesus Medina Ruvian",
+  "license": "ISC",
+  "dependencies": {
+    "@google-cloud/pubsub": "^3.2.0",
+    "async": "^3.2.4",
+    "async-each": "^1.0.3",
+    "axios": "^0.26.1",
+    "bluebird": "^3.7.2",
+    "coingecko-api": "^1.0.10",
+    "cors": "^2.8.5",
+    "express": "^4.17.3",
+    "knex": "^2.3.0",
+    "morgan": "^1.10.0",
+    "mysql": "^2.18.1",
+    "mysql2": "^2.3.3",
+    "nodemon": "^2.0.15"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MartinMedinaRuvian/dockerexample1.git"
+  },
+  "keywords": [],
+  "bugs": {
+    "url": "https://github.com/MartinMedinaRuvian/dockerexample1/issues"
+  },
+  "homepage": "https://github.com/MartinMedinaRuvian/dockerexample1#readme"
+}
