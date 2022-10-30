@@ -1,0 +1,131 @@
+openapi: 3.0.3
+info:
+  title: CryptoBot - Exchange
+  description: API encargada de la gestión de las criptomonedas en el sistema
+  version: 0.2.0
+paths:
+  /exchange/crypto/follow:
+    post:
+      tags:
+        - Cryptos
+      summary: Save following configuration of the cryptos
+      requestBody:
+        description: following configuration
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FollowingConfig'
+        required: true
+      responses:
+        '200':
+          description: following configuration saved
+        '500':
+          description: Internal error querying user, Internal error saving configuration
+  /exchange/crypto/notify:
+    get:
+      tags:
+        - Cryptos
+      summary: Notify prices to the interested users
+      responses:
+        '200':
+          description: Notifications sent successfully
+        '500':
+          description: >-
+            Internal error sending querying users, internal error sending
+            notifications
+  /exchange/crypto/price:
+    post:
+      tags:
+        - Cryptos
+      summary: Query the historic price of a crypto
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CryptoPrice'
+        required: true
+      responses:
+        '200':
+          description: historical price, TODO body response
+        '500':
+          description: error querying prices of the crypto
+  /exchange/account/event:
+    post:
+      tags:
+        - Consumers
+      summary: New account event
+      description: Endpoint for processing account events.
+      requestBody:
+        description: >-
+          PubSub Event notification body. The data field comes encrypted in
+          base64
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AccountPubSubEvent'
+        required: true
+      responses:
+        '200':
+          description: account saved/deleted/edited
+        '208':
+          description: account already exists
+        '500':
+          description: Error saving/editing/deleting account
+components:
+  schemas:
+    FollowingConfig:
+      type: object
+      properties:
+        telegram_id:
+          type: integer
+          example: 12768740
+        following_cryptos:
+          type: array
+          items:
+            type: string
+            example: BTC
+        query_schedule:
+          type: string
+          example: '*/5 * * * *'
+        currency_pair:
+          type: string
+          example: USD
+    CryptoPrice:
+      type: object
+      properties:
+        crypto:
+          type: string
+          example: BTC
+        range:
+          type: integer
+          example: 3
+    AccountPubSubEvent:
+      type: object
+      properties:
+        message:
+          type: object
+          properties:
+            data:
+              type: object
+              properties:
+                telegram_user_id:
+                  type: integer
+                  example: 1801261524
+                operation_type:
+                  type: string
+                  example: create/delete/edit
+                first_name:
+                  type: string
+                  example: Juan
+                last_name:
+                  type: string
+                  example: Perez
+                email:
+                  type: string
+                  example: example@gmail.com
+                username:
+                  type: string
+                  example: juanpe
+            message_id:
+              type: string
+              example: '23523146'

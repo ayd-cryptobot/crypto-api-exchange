@@ -70,11 +70,12 @@ function resetFollow(user_id) {
 
   var sql = "SELECT id_string FROM follow WHERE  (user_id='" + user_id + "')";
   con.query(sql, async function (err, result) {
+    
     if (err) return;
   });
   sql = "DELETE FROM follow WHERE(user_id='" + user_id + "');";
   con.query(sql, async function (err, result) {
-    if (err) throw err;
+    if (err) return;
     await console.log("1 follow deleted");
 
   })
@@ -106,6 +107,7 @@ endpoints.post('/exchange/crypto/follow', async (req, res) => {
 
 
 })
+
 
 
 endpoints.post('/exchange/crypto/price', async (req, res) => {
