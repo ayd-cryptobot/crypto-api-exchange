@@ -42,9 +42,9 @@ var con = mysql.createConnection({
 
 //exchange variables
 var crypto_name;
-var user_id;
-var currency_pair;
 
+var currency_pair;
+var query_schedule;
 
 const config = require('../config/config')
 const CoinGecko = require('coingecko-api');
@@ -58,7 +58,7 @@ async function geckoPing() {
 
 };
 
-function createFollow(user_id, crypto_name, currency_pair) {
+function createFollow(user_id, crypto_name, currency_pair,query_schedule) {
   let i = 0;
   while (i < crypto_name.length) {
     var sql = "INSERT INTO follow (user_id,crypto_name,currency_pair) VALUES ('" + user_id + "','" + crypto_name[i] + "','" + currency_pair + "');";
@@ -68,36 +68,46 @@ function createFollow(user_id, crypto_name, currency_pair) {
     });
     i++;
   }
+  sql ="UPDATE user SET query_schedule ='"+query_schedule+"' WHERE user_id ='"+user_id+"'";
+  con.query(sql, function (err, result) {
+    if (err) throw err;
+    console.log("query inserted");
+  });
 }
 function resetFollow(user_id) {
 
   var sql = "SELECT id_string FROM follow WHERE  (user_id='" + user_id + "')";
   con.query(sql, function (err, result) {
 
-    if (err) return;
+    if (err) throw err;
   });
   sql = "DELETE FROM follow WHERE(user_id='" + user_id + "');";
   con.query(sql, function (err, result) {
-    if (err) return;
+    if (err) throw err;
     console.log("1 follow deleted");
 
   })
 
 }
-function getUserByTelegram(telegram_id) {
+async function getUserByTelegram(telegram_id) {
   var rta;
   var sql = "SELECT user_id FROM user WHERE  (telegram_id='" + telegram_id + "')";
 
-  pool.query(sql, function (err, result) {
-    if (err) return;
+  con.query(sql, async function (err, result) {
+    if (err) throw err;
 
-    rta = JSON.stringify(result[0].user_id)
-    return rta;
+    rta = await(result[0].user_id)
+    
+   console.log(rta+"rta")
+    
   });
-
+  await delay()
+  console.log(rta+"rta")
+  
+  return  rta;
 }
 
-endpoints.post('/exchange/crypto/follow', (req, res) => {
+endpoints.post('/exchange/crypto/follow', async (req, res) => {
   console.log(req.body, "este es el body")
 
 
@@ -110,17 +120,29 @@ endpoints.post('/exchange/crypto/follow', (req, res) => {
   crypto_name = id.following_cryptos;
 
   currency_pair = id.currency_pair;
-  pool.connect(function (err) {
-    if (err) throw err;
+  query_schedule= id.query_schedule;
+  
+try{
     console.log("Connected!");
-    user_id = getUserByTelegram(id.telegram_id);
+    const user_id = await getUserByTelegram(id.telegram_id);
+    await delay()
+    await console.log(user_id);
+await delay()
     console.log(user_id);
+
     resetFollow(user_id);
-    createFollow(user_id, crypto_name, currency_pair);
+
+    createFollow(user_id, crypto_name, currency_pair,query_schedule);
     res.json({ "message": "follows inserted" });
     res.end;
+}catch
+{
+  res.json({ "message": "follow error" });
+    res.end;
+}
+   
 
-  })
+
 
 
 })
@@ -134,17 +156,24 @@ function delay() {
     }, 3000);
   });
 }
+function greatDelay() {
+  // `delay` returns a promise
+  return new Promise(function (resolve, reject) {
+    // Only `delay` is able to resolve or reject the promise
+    setTimeout(function () {
+      resolve(42); // After 3 seconds, resolve the promise with value 42
+    }, 30000);
+  });
+}
 
-
-
-endpoints.get('/exchange/crypto/notify/:user_id', async (req, res) => {
-  var user_id = req.params.user_id;
+async function notify(user_id) {
+  var user_id = user_id;
   var currency_pair
   var array_crypto = [];
   var sql;
   var array_coins = [];
 
-  var rta=[];
+  var rta = [];
   //conn.execute(async function(err) {
 
   //  if (err) throw err;
@@ -155,8 +184,8 @@ endpoints.get('/exchange/crypto/notify/:user_id', async (req, res) => {
 
   con.query(sql, async function (err, result) {
     if (err) return;
-
-    currency_pair = result[0].currency_pair;
+    console.log(result +"query check");
+    currency_pair = await result[0].currency_pair;
 
 
     for (crypto_rta of result) {
@@ -189,11 +218,11 @@ endpoints.get('/exchange/crypto/notify/:user_id', async (req, res) => {
           history: []
         }
         const valores = datos
-        
+
         for (let valor of valores) {
-    
+
           const valorGuardar = await parseFloat(valor[1].toFixed(3))
-          var history=(valorGuardar)
+          var history = (valorGuardar)
         }
         cryptoMoneda.history = history
         await rta.push(cryptoMoneda)
@@ -202,9 +231,55 @@ endpoints.get('/exchange/crypto/notify/:user_id', async (req, res) => {
   } catch (error) {
     console.log(error)
   }
-  delay()
-  res.json(rta);
-  res.end;
+  await delay();
+  return rta
+}
+
+async function usersQuery(query_schedule){
+
+  var users_array=[]
+  await nodeCron.schedule(query_schedule, () => {
+    console.log(query_schedule+"works")
+    con.query(sql, async function (err, result) {
+      console.log(result);
+      for (users of result) {
+        users_array.push(
+          message = {
+            user: users.telegram_id,
+            coin: await notify(users.user_id)
+          })
+       // await delay();
+      }
+
+    })
+  })
+  return users_array
+}
+
+async function schedule(){
+  var users_array = []
+  query_schedule = "*/30 * * * *"
+
+  sql = "SELECT user_id, telegram_id FROM user WHERE (query_schedule='" + query_schedule + "')"
+  users_array.push(await usersQuery(query_schedule))
+  await greatDelay();
+  query_schedule = "* */1 * * *"
+  sql = "SELECT user_id, telegram_id FROM user WHERE (query_schedule='" + query_schedule + "')"
+  users_array.push(await usersQuery(query_schedule))
+  await greatDelay();
+  query_schedule = "* */2 * * *"
+  sql = "SELECT user_id, telegram_id FROM user WHERE (query_schedule='" + query_schedule + "')"
+  users_array.push(await usersQuery(query_schedule))
+  await greatDelay();
+  return await users_array;
+}
+
+endpoints.get('/exchange/crypto/notify/', async (req, res) => {
+
+  res.json(await schedule())
+  res.end
+
+
 })
 
 
