@@ -1,3 +1,4 @@
+
 openapi: 3.0.3
 info:
   title: CryptoBot - Exchange
@@ -30,9 +31,7 @@ paths:
         '200':
           description: Notifications sent successfully
         '500':
-          description: >-
-            Internal error sending querying users, internal error sending
-            notifications
+          description: Internal error sending querying users, internal error sending notifications
   /exchange/crypto/price:
     post:
       tags:
@@ -44,9 +43,14 @@ paths:
             schema:
               $ref: '#/components/schemas/CryptoPrice'
         required: true
+   
       responses:
         '200':
-          description: historical price, TODO body response
+          description: historical price  
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CryptoHistoricPrice'
         '500':
           description: error querying prices of the crypto
   /exchange/account/event:
@@ -56,21 +60,20 @@ paths:
       summary: New account event
       description: Endpoint for processing account events.
       requestBody:
-        description: >-
-          PubSub Event notification body. The data field comes encrypted in
-          base64
+        description: PubSub Event notification body. The data field comes encrypted in base64
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/AccountPubSubEvent'
         required: true
+   
       responses:
         '200':
-          description: account saved/deleted/edited
+          description: account saved/deleted/edited    
         '208':
-          description: account already exists
+          description: account already exists    
         '500':
-          description: Error saving/editing/deleting account
+          description: Error saving/editing/deleting account        
 components:
   schemas:
     FollowingConfig:
@@ -83,22 +86,23 @@ components:
           type: array
           items:
             type: string
-            example: BTC
+            example: "BTC"
         query_schedule:
           type: string
-          example: '*/5 * * * *'
+          example: "*/5 * * * *"
         currency_pair:
           type: string
-          example: USD
+          example: "USD"
+         
     CryptoPrice:
       type: object
       properties:
-        crypto:
+        cypto:
           type: string
-          example: BTC
-        range:
+          example: "BTC"
+        date_range:
           type: integer
-          example: 3
+          example: 7
     AccountPubSubEvent:
       type: object
       properties:
@@ -113,19 +117,43 @@ components:
                   example: 1801261524
                 operation_type:
                   type: string
-                  example: create/delete/edit
+                  example: "create/delete/edit"
                 first_name:
                   type: string
-                  example: Juan
+                  example: "Juan"
                 last_name:
                   type: string
-                  example: Perez
+                  example: "Perez"
                 email:
                   type: string
-                  example: example@gmail.com
+                  example: "example@gmail.com"
                 username:
                   type: string
-                  example: juanpe
+                  example: "juanpe"
+                 
             message_id:
               type: string
-              example: '23523146'
+              example: "23523146"    
+    CryptoHistoricPrice:
+      type: object
+      properties:
+        name:
+          type: string
+          example: "bitcoin"
+        currrency_pair:
+          type: string
+          example: "dolar"
+        historic_price:
+          type: array
+          items:
+            oneOf:
+              - $ref: '#/components/schemas/CryptoPriceResponse'
+    CryptoPriceResponse:
+      type: object
+      properties:
+        date:
+          type: string
+          example: "27-10-2022"
+        price:
+          type: integer
+          example: 30000
