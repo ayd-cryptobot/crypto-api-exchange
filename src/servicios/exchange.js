@@ -1,24 +1,11 @@
-
 const express = require('express')
-const nodeCron = require("node-cron");
 const endpoints = express.Router()
+const nodeCron = require("node-cron");
 const axios = require('axios')
-const bluebird = require('bluebird')
-// const knex = require('Knex')({
-//   client:'mysql',
-//   connection:{
-//   host: "localhost",
-//   user: "root",
-//   password: "root",
-//   database: "exchange",}
-// });
-const app = express();
-module.exports = endpoints
-
 //database    
 var mysql = require('mysql2');
-const async = require('async')
 
+//"https://fd2e-181-132-2-224.ngrok.io/exchange/crypto/notify/"
 
 var con = mysql.createConnection({
   host: "localhost",
@@ -28,19 +15,6 @@ var con = mysql.createConnection({
 })
 
 
-//var mysqlPro = require('mysql2/promise');
-//  const conn = await  mysqlPro.createConnection({
-//    host: "localhost",
-//    user: "root",
-//    password: "root",
-//    database: "exchange",
-//   Promise: bluebird
-// })
-
-//const prom = await  conn.promise();
-
-
-//exchange variables
 var crypto_name;
 
 var currency_pair;
@@ -48,7 +22,7 @@ var query_schedule;
 
 const config = require('../config/config')
 const CoinGecko = require('coingecko-api');
-const { promisify } = require('bluebird');
+
 const CoinGeckoClient = new CoinGecko();
 geckoPing();
 //3. Make calls
@@ -57,6 +31,7 @@ async function geckoPing() {
   console.log(await CoinGeckoClient.ping())
 
 };
+
 
 function createFollow(user_id, crypto_name, currency_pair,query_schedule) {
   let i = 0;
@@ -395,3 +370,4 @@ endpoints.post('/exchange/accounts/event', async (req, res) => {
   })
 
 })
+module.exports = endpoints

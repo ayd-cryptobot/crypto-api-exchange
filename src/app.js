@@ -1,12 +1,10 @@
-
-
 const app = require('./server')
 
 function main () {
     /***
      * Configuro el puerto en el que va escuchar el server
      */
-    app.set('port', process.env.PORT || 5000)
+    app.set('port', process.env.PORT || 3000)
     /**
      * Preparo o le asigno el puerto donde va escuchar el server
      */
