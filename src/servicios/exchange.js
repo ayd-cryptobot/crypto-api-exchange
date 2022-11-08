@@ -56,12 +56,14 @@ function resetFollow(user_id) {
 
     if (err) throw err;
   });
-  sql = "DELETE FROM follow WHERE(user_id='" + user_id + "');";
-  con.query(sql, function (err, result) {
-    if (err) throw err;
-    console.log("1 follow deleted");
-
-  })
+  if(id_string){
+    sql = "DELETE FROM follow WHERE(id_string='" + id_string + "');";
+    con.query(sql, function (err, result) {
+      if (err) throw err;
+      console.log("1 follow deleted");
+  
+    })
+  }
 
 }
 async function getUserByTelegram(telegram_id) {
