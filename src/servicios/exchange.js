@@ -33,7 +33,7 @@ async function geckoPing() {
 };
 
 
-function createFollow(user_id, crypto_name, currency_pair,query_schedule) {
+async function createFollow(user_id, crypto_name, currency_pair,query_schedule) {
   let i = 0;
   while (i < crypto_name.length) {
     var sql = "INSERT INTO follow (user_id,crypto_name,currency_pair) VALUES ('" + user_id + "','" + crypto_name[i] + "','" + currency_pair + "');";
@@ -41,35 +41,42 @@ function createFollow(user_id, crypto_name, currency_pair,query_schedule) {
       if (err) throw err;
       console.log("1 follow inserted");
     });
-    i++;
+    await i++;
   }
-  sql ="UPDATE user SET query_schedule ='"+query_schedule+"' WHERE user_id ='"+user_id+"'";
-  con.query(sql, function (err, result) {
+  var sql2 ="UPDATE user SET query_schedule ='"+query_schedule+"' WHERE user_id ='"+user_id+"'";
+  con.query(sql2, function (err, result) {
     if (err) throw err;
     console.log("query inserted");
   });
 }
 function resetFollow(user_id) {
-
-  var sql = "SELECT id_string FROM follow WHERE  (user_id='" + user_id + "')";
+try{
+  var sql = "SELECT user_id FROM follow WHERE  (user_id='" + user_id + "')";
   con.query(sql, function (err, result) {
-
     if (err) throw err;
   });
-  if(id_string){
-    sql = "DELETE FROM follow WHERE(id_string='" + id_string + "');";
+
+  //if(id_string){
+    sql = "DELETE FROM follow WHERE(user_id='" +user_id + "');";
     con.query(sql, function (err, result) {
       if (err) throw err;
       console.log("1 follow deleted");
   
     })
-  }
 
+  //}
+
+}
+catch(err)
+{
+ // res.json("user not found")
+//  res.end()
+}
 }
 async function getUserByTelegram(telegram_id) {
   var rta;
   var sql = "SELECT user_id FROM user WHERE  (telegram_id='" + telegram_id + "')";
-
+try{
   con.query(sql, async function (err, result) {
     if (err) throw err;
 
@@ -78,6 +85,12 @@ async function getUserByTelegram(telegram_id) {
    console.log(rta+"rta")
     
   });
+}
+catch(err){
+  res.json("user not exist")
+    res.end()
+  
+}
   await delay()
   console.log(rta+"rta")
   
@@ -108,11 +121,11 @@ await delay()
     console.log(user_id);
 
     resetFollow(user_id);
-
+    await delay()
     createFollow(user_id, crypto_name, currency_pair,query_schedule);
     res.json({ "message": "follows inserted" });
     res.end;
-}catch
+}catch(err)
 {
   res.json({ "message": "follow error" });
     res.end;
@@ -262,14 +275,16 @@ endpoints.get('/exchange/crypto/notify/', async (req, res) => {
 
 
 endpoints.post('/exchange/crypto/price', async (req, res) => {
+  console.log(req.body, "este es el body")
 
-  var crypto = req.body.crypto
-  var range = req.body.range
-  var arregloCryptos = []
+  var crypto 
+  var range 
+  var arregloCryptos 
 
   try {
-
-
+    var crypto =req.body.crypto
+    var range =req.body.dateRange
+    var arregloCryptos = []
 
     const response = await axios.get(config.api_exchange_history + crypto + '/market_chart?vs_currency=USD&days=' + range + '&interval=daily')
     const datos = response.data.prices
@@ -277,12 +292,14 @@ endpoints.post('/exchange/crypto/price', async (req, res) => {
       nombre: crypto,
       history: []
     }
+    delay()
     const valores = datos
     const history = []
     for (let valor of valores) {
 
       const valorGuardar = await parseFloat(valor[1].toFixed(3))
       history.push(valorGuardar)
+      delay()
     }
     cryptoMoneda.history = history
     console.log(cryptoMoneda)
@@ -290,9 +307,17 @@ endpoints.post('/exchange/crypto/price', async (req, res) => {
 
 
   } catch (error) {
-    // console.log(error)
+     console.log("error")
   }
-  res.json(arregloCryptos);
+  var message={
+    "name": crypto,
+    "currrency_pair": "USD",
+    "historic_price":arregloCryptos
+
+  }
+console.log(message)
+
+  res.json(message);
   res.end;
 })
 
