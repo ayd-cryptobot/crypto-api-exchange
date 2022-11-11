@@ -315,11 +315,11 @@ endpoints.post('/exchange/crypto/price', async (req, res) => {
 
 
   } catch (error) {
-     console.log(error)
+    // console.log(error)
   }
   var message={
     "name": crypto,
-    "currrency_pair": "USD",
+    "currency_pair": "USD",
     "historic_price":arregloCryptos
 
   }
