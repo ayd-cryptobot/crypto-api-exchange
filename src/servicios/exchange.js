@@ -239,13 +239,11 @@ endpoints.get('/exchange/crypto/notify/', async (req, res) => {
 
 endpoints.post('/exchange/crypto/price', async (req, res) => {
   console.log(req.body, "este es el body")
-
-  var crypto 
-  var range 
-  var arregloCryptos 
-  var actual_date=new Date()
-  var date=new Date()
   try {
+    await PromiseConnection();
+    var actual_date=new Date()
+    var date=new Date()
+
     var crypto =req.body.crypto
     var range =req.body.dateRange
     var arregloCryptos = []
@@ -291,80 +289,71 @@ console.log(message)
   res.end;
 })
 
-
-endpoints.post('/exchange/accounts/event', async (req, res) => {
-  console.log(req.body, "este es el body")
-
-
-  //const buff = Buffer.from(req.body.message.data, 'base64');
-  //const buff = Buffer.from(req.body.message.data, 'base64');
-  const buff = req.body.message.data;
-  //const id=buff.toString('utf-8')
-  const id = buff;
-  try {
-    var operation_type = id.operation_type
-    console.log(operation_type);
-  }
-  catch (err) {
-  }
-
-  con.connect(async function (err) {
-    if (err) throw err;
+endpoints.post('/news/accounts/event', async (req, res) => {
+  try{
+    console.log(req.body, "este es el body")
+    await PromiseConnection();
+  
+    //const buff = Buffer.from(req.body.message.data, 'base64');
+    //const buff = Buffer.from(req.body.message.data, 'base64');
+    const buff = req.body.message.data;
+    //const id=buff.toString('utf-8')
+    const id = buff;
+    try {
+      var operation_type = id.operation_type
+      console.log(operation_type);
+    }
+    catch (err) {
+      res.json("invalid operation")
+      res.end
+    }
     console.log("Connected!");
-
+    var telegram_user_id = id.telegram_user_id
     switch (operation_type) {
-
+  
       case ("create"):
-        var telegram_user_id = id.telegram_user_id
         // var first_name=id.first_name
         // var last_name=id.last_name
         // var email=id.email
         // var username=id.username
-
         //     var sql = "INSERT INTO user (telegram_id,first_name, last_name,email  username,  rol) VALUES ('"+telegram_user_id+"','"+first_name+"','"+ last_name+"','"+ email+"','"+ username+"','cliente');";
         var sql = "INSERT INTO user (telegram_id) VALUES ('" + telegram_user_id + "');";
-
-        con.query(sql, async function (err, result) {
-          if (err) throw err;
-
-          await res.json({ "message": "account created" });
-        });
+        result = await con.query(sql)
+        await res.json({ "message": "account created" });
         break;
+  
       case ("edit"):
-        var telegram_user_id = id.telegram_user_id
         // var first_name=id.first_name
         // var last_name=id.last_name
         // var email=id.email
         // var username=id.username
         //     var sql = "UPDATE user SET first_name='"+first_name+"',last_name='"+ last_name+"',email='"+ email+"',username='"+ username+"' WHERE (telegram_id='"+telegram__user_id+"');";
         var query_schedule = id.query_schedule;
-
-        var sql = "UPDATE user SET query_schedule='" + query_schedule + "' WHERE (telegram_id='" + telegram__user_id + "');";
-
-        con.query(sql, async function (err, result) {
-
-          await res.json({ "message": "account edited" });
-        });
+  
+        var sql = "UPDATE user SET query_schedule='" + query_schedule + "' WHERE (telegram_id='" + telegram_user_id + "');";
+        result = await con.query(sql)
+  
+        await res.json({ "message": "account edited" });
         break;
+  
       case ("delete"):
-        var telegram_user_id = id.telegram_user_id
         var sql = "DELETE FROM user WHERE (telegram_id='" + telegram_user_id + "');";
-        con.query(sql, async function (err, result) {
-          if (err) throw err;
-
-          await res.json({ "message": "account deleted" });
-        });
+        result = await con.query(sql)
+        await res.json({ "message": "account deleted" });
         break;
+  
       default:
-
         await res.json({ "error": "event not found" });
         break;
     }
-
+  
     res.end
-
-
+  }
+  catch(err){
+    console.log(err)
+    res.json("error")
+    res.end
+  }
   })
-
-})
+  
 module.exports = endpoints
