@@ -1,33 +1,21 @@
-
 const express = require('express')
-const nodeCron = require("node-cron");
-const endpoints = express.Router()
+const endpoints = express()
 const axios = require('axios')
-const bluebird = require('bluebird')
-// const knex = require('Knex')({
-//   client:'mysql',
-//   connection:{
-//   host: "localhost",
-//   user: "root",
-//   password: "root",
-//   database: "exchange",}
-// });
-const app = express();
-module.exports = endpoints
-
+const response = require('../server.js')
+var mysqlpro = require('mysql2/promise');
 //database    
-var mysql = require('mysql2');
-const async = require('async')
+//connection variable 
+var con
+async function PromiseConnection() {
+  con = await mysqlpro.createConnection({
+    host: "localhost",
+    user: "root",
+    password: "root",
+    database: "exchange"
+  });
 
-
-var con = mysql.createConnection({
-  host: "localhost",
-  user: "root",
-  password: "root",
-  database: "exchange"
-})
-
-
+}
+const nodeCron = require("node-cron");
 //var mysqlPro = require('mysql2/promise');
 //  const conn = await  mysqlPro.createConnection({
 //    host: "localhost",
@@ -45,10 +33,10 @@ var crypto_name;
 
 var currency_pair;
 var query_schedule;
+var result;
 
 const config = require('../config/config')
 const CoinGecko = require('coingecko-api');
-const { promisify } = require('bluebird');
 const CoinGeckoClient = new CoinGecko();
 geckoPing();
 //3. Make calls
@@ -58,155 +46,113 @@ async function geckoPing() {
 
 };
 
-function createFollow(user_id, crypto_name, currency_pair,query_schedule) {
+async function createFollow(user_id, crypto_name) {
   let i = 0;
   while (i < crypto_name.length) {
-    var sql = "INSERT INTO follow (user_id,crypto_name,currency_pair) VALUES ('" + user_id + "','" + crypto_name[i] + "','" + currency_pair + "');";
-    con.query(sql, function (err, result) {
-      if (err) throw err;
-      console.log("1 follow inserted");
-    });
+    var sql = "INSERT INTO follow (user_id,crypto_name) VALUES ('" + user_id + "','" + crypto_name[i] + "');";
+    result = await con.query(sql)
+    console.log("1 follow inserted");
+
     i++;
   }
-  sql ="UPDATE user SET query_schedule ='"+query_schedule+"' WHERE user_id ='"+user_id+"'";
-  con.query(sql, function (err, result) {
-    if (err) throw err;
-    console.log("query inserted");
-  });
-}
-function resetFollow(user_id) {
-
-  var sql = "SELECT id_string FROM follow WHERE  (user_id='" + user_id + "')";
-  con.query(sql, function (err, result) {
-
-    if (err) throw err;
-  });
-  sql = "DELETE FROM follow WHERE(user_id='" + user_id + "');";
-  con.query(sql, function (err, result) {
-    if (err) throw err;
-    console.log("1 follow deleted");
-
-  })
 
 }
+
+async function resetFollow(user_id) {
+  try {
+    var sql = "SELECT id_string FROM follow WHERE  (user_id='" + user_id + "')";
+    result = await con.query(sql)
+  }
+  catch (err) {
+    console.log("new follow")
+    return
+  }
+  try {
+    var sql = "DELETE FROM follow WHERE(user_id='" + user_id + "');";
+    result = await con.query(sql)
+
+    console.log("1 follow inserted");
+  }
+  catch (err) {
+    res.json("error on delete")
+    res.end
+  }
+}
+
 async function getUserByTelegram(telegram_id) {
   var rta;
   var sql = "SELECT user_id FROM user WHERE  (telegram_id='" + telegram_id + "')";
 
-  con.query(sql, async function (err, result) {
-    if (err) throw err;
+  result = await con.query(sql)
 
-    rta = await(result[0].user_id)
-    
-   console.log(rta+"rta")
-    
-  });
-  await delay()
-  console.log(rta+"rta")
-  
-  return  rta;
+  rta = await (result[0][0].user_id)
+
+  console.log(rta + "rta")
+
+  return rta;
 }
+
 
 endpoints.post('/exchange/crypto/follow', async (req, res) => {
+
   console.log(req.body, "este es el body")
 
+  try {
+    //const buff = Buffer.from(req.body.message.data, 'base64');
+    //const buff = Buffer.from(req.body.message.data, 'base64');
+    const buff = req.body;
+    //const id=buff.toString('utf-8')
+    const id = buff;
+    console.log(id)
+    crypto_name = id.following_cryptos;
 
-  //const buff = Buffer.from(req.body.message.data, 'base64');
-  //const buff = Buffer.from(req.body.message.data, 'base64');
-  const buff = req.body;
-  //const id=buff.toString('utf-8')
-  const id = buff;
+    currency_pair = id.currency_pair;
+    query_schedule = id.query_schedule;
+    await PromiseConnection();
 
-  crypto_name = id.following_cryptos;
-
-  currency_pair = id.currency_pair;
-  query_schedule= id.query_schedule;
-  
-try{
     console.log("Connected!");
     const user_id = await getUserByTelegram(id.telegram_id);
-    await delay()
-    await console.log(user_id);
-await delay()
-    console.log(user_id);
-
     resetFollow(user_id);
-
-    createFollow(user_id, crypto_name, currency_pair,query_schedule);
+    createFollow(user_id, crypto_name, currency_pair, query_schedule);
     res.json({ "message": "follows inserted" });
     res.end;
-}catch
-{
-  res.json({ "message": "follow error" });
+  } catch
+  {
+    res.json({ "message": "follow error" });
     res.end;
-}
-   
-
-
-
-
+  }
 })
 
-function delay() {
-  // `delay` returns a promise
-  return new Promise(function (resolve, reject) {
-    // Only `delay` is able to resolve or reject the promise
-    setTimeout(function () {
-      resolve(42); // After 3 seconds, resolve the promise with value 42
-    }, 3000);
-  });
-}
-function greatDelay() {
-  // `delay` returns a promise
-  return new Promise(function (resolve, reject) {
-    // Only `delay` is able to resolve or reject the promise
-    setTimeout(function () {
-      resolve(42); // After 3 seconds, resolve the promise with value 42
-    }, 30000);
-  });
-}
 
 async function notify(user_id) {
-  var user_id = user_id;
-  var currency_pair
-  var array_crypto = [];
-  var sql;
-  var array_coins = [];
+  try {
+    var user_id = user_id;
+    var currency_pair
+    var array_crypto = [];
+    var sql;
+    var array_coins = [];
 
-  var rta = [];
-  //conn.execute(async function(err) {
+    var rta = [];
+    //conn.execute(async function(err) {
 
-  //  if (err) throw err;
+    //  if (err) throw err;
 
-  console.log("Connected!");
+    console.log("Connected!");
 
-  sql = "SELECT crypto_name,currency_pair FROM follow WHERE  (user_id='" + user_id + "')";
-
-  con.query(sql, async function (err, result) {
-    if (err) return;
-    console.log(result +"query check");
+    sql = "SELECT crypto_name,currency_pair FROM follow WHERE  (user_id='" + user_id + "')";
+    result = await con.query(sql)
+    console.log(JSON.stringify(result) + "query check");
     currency_pair = await result[0].currency_pair;
-
-
     for (crypto_rta of result) {
       await array_crypto.push(crypto_rta.crypto_name);
       console.log(array_crypto + "check")
 
     }
-
-  });
-
-  cryptos = await array_crypto;
-  await delay();
-
-
-  try {
+    cryptos = await array_crypto;
 
     for (crypto_rta of cryptos) {
       array_coins.push(crypto_rta.crypto_name);
     }
-
-
     if (cryptos && cryptos.length > 0) {
       for (let crypto of cryptos) {
 
@@ -226,59 +172,66 @@ async function notify(user_id) {
         }
         cryptoMoneda.history = history
         await rta.push(cryptoMoneda)
+        await rta.push(currency_pair)
       }
     }
   } catch (error) {
     console.log(error)
+    res.json("error on notification")
+    res.end
   }
-  await delay();
   return rta
 }
 
-async function usersQuery(query_schedule){
+async function usersQuery(query_schedule) {
 
-  var users_array=[]
-  await nodeCron.schedule(query_schedule, () => {
-    console.log(query_schedule+"works")
-    con.query(sql, async function (err, result) {
-      console.log(result);
-      for (users of result) {
-        users_array.push(
-          message = {
-            user: users.telegram_id,
-            coin: await notify(users.user_id)
-          })
-       // await delay();
-      }
+  var users_array = []
+  await nodeCron.schedule(query_schedule, async () => {
+    console.log(query_schedule + "works")
+    result = await con.query(sql)
+    await console.log(JSON.stringify(result));
+    for (users of result) {
+     await  users_array.push(
+        message = {
+          user: users.telegram_id,
+          coin: await notify(users.user_id)
+        })
+      // await delay();
+    }
 
-    })
+
   })
   return users_array
 }
 
-async function schedule(){
+async function schedule() {
   var users_array = []
   query_schedule = "*/30 * * * *"
 
   sql = "SELECT user_id, telegram_id FROM user WHERE (query_schedule='" + query_schedule + "')"
-  users_array.push(await usersQuery(query_schedule))
-  await greatDelay();
+  await users_array.push(await usersQuery(query_schedule))
+
   query_schedule = "* */1 * * *"
   sql = "SELECT user_id, telegram_id FROM user WHERE (query_schedule='" + query_schedule + "')"
-  users_array.push(await usersQuery(query_schedule))
-  await greatDelay();
+  await users_array.push(await usersQuery(query_schedule))
+
   query_schedule = "* */2 * * *"
   sql = "SELECT user_id, telegram_id FROM user WHERE (query_schedule='" + query_schedule + "')"
-  users_array.push(await usersQuery(query_schedule))
-  await greatDelay();
+  await users_array.push(await usersQuery(query_schedule))
+
   return await users_array;
 }
 
 endpoints.get('/exchange/crypto/notify/', async (req, res) => {
-
-  res.json(await schedule())
-  res.end
-
+  await PromiseConnection();
+  try {
+    res.json(await schedule())
+    res.end
+  }
+  catch (err) {
+    res.json("internal fuction error")
+    res.end
+  }
 
 })
 
@@ -395,3 +348,4 @@ endpoints.post('/exchange/accounts/event', async (req, res) => {
   })
 
 })
+module.exports = endpoints
