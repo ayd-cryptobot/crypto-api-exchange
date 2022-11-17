@@ -238,37 +238,56 @@ endpoints.get('/exchange/crypto/notify/', async (req, res) => {
 
 
 endpoints.post('/exchange/crypto/price', async (req, res) => {
+  console.log(req.body, "este es el body")
 
-  var crypto = req.body.crypto
-  var range = req.body.range
-  var arregloCryptos = []
-
+  var crypto 
+  var range 
+  var arregloCryptos 
+  var actual_date=new Date()
+  var date=new Date()
   try {
-
-
-
+    var crypto =req.body.crypto
+    var range =req.body.dateRange
+    var arregloCryptos = []
+     actual_date;
+     console.log (date)
     const response = await axios.get(config.api_exchange_history + crypto + '/market_chart?vs_currency=USD&days=' + range + '&interval=daily')
     const datos = response.data.prices
     let cryptoMoneda = {
-      nombre: crypto,
-      history: []
     }
+    delay()
     const valores = datos
-    const history = []
+    const historic_price = []
+    actual_date.setDate(actual_date.getDate()-valores.length+1)
     for (let valor of valores) {
-
+      date =date_format.format(actual_date,'DD/MM/YYYY')
       const valorGuardar = await parseFloat(valor[1].toFixed(3))
-      history.push(valorGuardar)
+      historic_price.push({
+       "date" : date,
+       "price": valorGuardar
+      }
+        )
+
+      delay()
+      actual_date.setDate(actual_date.getDate()+1)
     }
-    cryptoMoneda.history = history
+    cryptoMoneda= historic_price
     console.log(cryptoMoneda)
-    arregloCryptos.push(cryptoMoneda)
+    arregloCryptos=cryptoMoneda
 
 
   } catch (error) {
     // console.log(error)
   }
-  res.json(arregloCryptos);
+  var message={
+    "name": crypto,
+    "currency_pair": "USD",
+    "historic_price":arregloCryptos
+
+  }
+console.log(message)
+
+  res.json(message);
   res.end;
 })
 
