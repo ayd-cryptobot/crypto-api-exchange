@@ -16,24 +16,15 @@ async function PromiseConnection() {
 
 }
 
-const nodeCron = require("node-cron");
-//var mysqlPro = require('mysql2/promise');
-//  const conn = await  mysqlPro.createConnection({
-//    host: "localhost",
-//    user: "root",
-//    password: "root",
-//    database: "exchange",
-//   Promise: bluebird
-// })
 
-//const prom = await  conn.promise();
+
 
 
 //exchange variables
 var crypto_name;
 
 var currency_pair = "";
-var query_schedule;
+
 var result;
 
 var cryptos_array_base;
@@ -50,11 +41,10 @@ function sleep(ms) {
   });
 }
 
-async function createFollow(user_id, crypto_name, currency_pair, query_schedule) {
+async function createFollow(user_id, crypto_name, currency_pair) {
   let i = 0;
   while (i < crypto_name.length) {
-    var sql = "UPDATE user SET query_schedule ='" + query_schedule + "' WHERE user_id=" + user_id;
-    result = await con.query(sql)
+
     var sql = "INSERT INTO follow (user_id,crypto_name,currency_pair) VALUES ('" + user_id + "','" + crypto_name[i] + "','" + currency_pair + "');";
     result = await con.query(sql)
     console.log("1 follow inserted");
@@ -113,13 +103,12 @@ endpoints.post('/exchange/crypto/follow', async (req, res) => {
     crypto_name = id.following_cryptos;
 
     currency_pair = id.currency_pair;
-    query_schedule = id.query_schedule;
     await PromiseConnection();
 
     console.log("Connected!");
     const user_id = await getUserByTelegram(id.telegram_id);
     resetFollow(user_id);
-    createFollow(user_id, crypto_name, currency_pair, query_schedule);
+    createFollow(user_id, crypto_name, currency_pair);
     res.json({ "message": "follows inserted" });
     res.end;
   } catch
