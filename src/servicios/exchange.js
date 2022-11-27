@@ -8,19 +8,10 @@ var mysqlpro = require('mysql2/promise');
 var con
 async function PromiseConnection() {
   con = await mysqlpro.createConnection({
-    host: "localhost",
-    user: "root",
-    password: "root",
-    database: "exchange"
-  });
-
-}
-async function PromiseConnectionMYSQL() {
-  con = await mysqlpro.createConnection({
-    host: "34.172.241.136",
-    user: "exchange-instance",
-    password: "((9+%xpa#i3XO5k&",
-    database: "exchange-db"
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASS,
+    database: process.env.DB_DATABASE
   });
 
 }
