@@ -15,6 +15,16 @@ async function PromiseConnection() {
   });
 
 }
+async function PromiseConnectionMYSQL() {
+  con = await mysqlpro.createConnection({
+    host: "34.172.241.136",
+    user: "exchange-instance",
+    password: "((9+%xpa#i3XO5k&",
+    database: "exchange-db"
+  });
+
+}
+
 const nodeCron = require("node-cron");
 //var mysqlPro = require('mysql2/promise');
 //  const conn = await  mysqlPro.createConnection({
@@ -35,23 +45,26 @@ var currency_pair = "";
 var query_schedule;
 var result;
 
+var cryptos_array_base;
+
 const config = require('../config/config')
 const CoinGecko = require('coingecko-api');
 const CoinGeckoClient = new CoinGecko();
-geckoPing();
+
 //3. Make calls
-async function geckoPing() {
-  let data = await CoinGeckoClient.ping()
-  console.log(await CoinGeckoClient.ping())
+//delays functions
+function sleep(ms) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
 
-};
-
-async function createFollow(user_id, crypto_name,currency_pair, query_schedule) {
+async function createFollow(user_id, crypto_name, currency_pair, query_schedule) {
   let i = 0;
   while (i < crypto_name.length) {
-    var sql = "UPDATE user SET query_schedule ='"+query_schedule+"' WHERE user_id="+ user_id;
+    var sql = "UPDATE user SET query_schedule ='" + query_schedule + "' WHERE user_id=" + user_id;
     result = await con.query(sql)
-    var sql = "INSERT INTO follow (user_id,crypto_name,currency_pair) VALUES ('" + user_id + "','" + crypto_name[i] + "','"+currency_pair+"');";
+    var sql = "INSERT INTO follow (user_id,crypto_name,currency_pair) VALUES ('" + user_id + "','" + crypto_name[i] + "','" + currency_pair + "');";
     result = await con.query(sql)
     console.log("1 follow inserted");
 
@@ -126,109 +139,157 @@ endpoints.post('/exchange/crypto/follow', async (req, res) => {
 })
 
 
-async function notify(user_id) {
+async function notify() {
   try {
-    var user_id = user_id;
-
+    cryptos_array_base = {};
     var array_crypto = [];
-    var sql;
-
-    var rta = [];
+    var string_crypto
+    var sqlNotify;
     //conn.execute(async function(err) {
 
     //  if (err) throw err;
 
     console.log("Connected!");
 
-    sql = "SELECT crypto_name,currency_pair FROM follow WHERE  (user_id='" + user_id + "')";
-    var result = await con.query(sql)
-    result = await result[0]
-    currency_pair = "" + result[0].currency_pair;
+    sqlNotify = "SELECT crypto_name FROM crypto ";
+    var result = await con.query(sqlNotify)
+    result = result[0]
 
+
+    currency_pair_array = ["USD", "EUR"];
+
+    i = 0;
     for (crypto_rta of result) {
-      await array_crypto.push(crypto_rta.crypto_name);
 
-    }
-
-    if (array_crypto && array_crypto.length > 0) {
-      for (let crypto of array_crypto) {
-
-        const response = await axios.get(config.api_exchange_history + crypto + '/market_chart?vs_currency=' + currency_pair + '&days=' + 0 + '&interval=daily')
-
-        const datos = response.data.prices
-        let cryptoMoneda = {
-          nombre: crypto,
-          history: []
+      if (crypto_rta.crypto_name) {
+        await array_crypto.push(crypto_rta.crypto_name);
+        if (i != result.length - 1) {
+          string_crypto += crypto_rta.crypto_name + "%2C"
         }
-        const valores = datos
+        else
+          string_crypto += crypto_rta.crypto_name
 
-        for (let valor of valores) {
-
-          const valorGuardar = await parseFloat(valor[1].toFixed(3))
-          var history = (valorGuardar)
-        }
-        cryptoMoneda.history = history
-        await rta.push(cryptoMoneda)
-        await rta.push(currency_pair)
       }
+      i++
     }
+
+    var response = await config.api_exchange_simple + string_crypto + '&vs_currencies=USD%2CEUR'
+    response = await axios.get(response)
+
   } catch (error) {
     console.log(error)
 
   }
-  if (rta) return rta
-  else return
+  cryptos_array_base = response
+  return response
 
 }
+async function selectCryptoToUser(user_id) {
+  rta = ""
+  stringMoneda = ""
+  try {
+    sqlcurrency = "SELECT crypto_name, currency_pair FROM follow WHERE  (user_id='" + user_id + "')";
+    var resultCurrency = await con.query(sqlcurrency)
+
+    resultCurrency = await resultCurrency[0]
+
+    currency_pair = "" + resultCurrency[0].currency_pair;
+    stringMoneda = stringMoneda+ "currency: " + currency_pair
+    const keys = Object.keys(cryptos_array_base.data)
+
+    const currency_keys = Object.keys(cryptos_array_base.data.bitcoin)
+    for (key of keys) {
+      for (datas of resultCurrency) {
+
+        var name = datas.crypto_name
+
+        if (key == name) {
+          for (currency_key of currency_keys) {
+            if (currency_key == currency_pair.toLowerCase()) {
+              stringMoneda = stringMoneda + " \n " + name + " \n " + cryptos_array_base.data[key][currency_key];
+            }
+          }
+        }
+      }
+    }
+    rta = await " " + stringMoneda + "\n";
+    return rta;
+
+
+  }
+  catch (err) {
+    console.log(err)
+  }
+
+
+}
+
 
 async function usersQuery(sql) {
-  console.log(sql + "outworks")
-  var users_array = []
-  // await nodeCron.schedule(query_schedule, async () => {
-  console.log(sql + "works")
-  result = await con.query(sql)
-if(result[0]){
-  for (users of result[0]) {
-    var notification = await notify(users.user_id)
-    message = {
-      user: users.telegram_id,
-      coin: notification
+  try {
+    var users_array = []
+    console.log(sql + "outworks")
+    result = await con.query(sql)
+
+    if (result[0]) {
+      for (users of result[0]) {
+        var notification = await selectCryptoToUser(users.user_id)
+
+        message = "CRYPTO PRICES \ud83d\udcb8 \n" + notification
+        console.log(message)
+        message = {
+          chat_id: users.telegram_id,
+          message
+
+
+        }
+        if (message) {
+          await users_array.push(JSON.stringify(message))
+          publishMessage(JSON.stringify(message))
+        }
+      }
+
     }
-    if (message) {
-      await users_array.push(message)
-    }
+
+
+    return users_array
   }
-}
-
-
-  console.log(users_array)
-
-  // })
-  return users_array
+  catch (err) {
+    console.log(err)
+  }
 }
 
 async function schedule() {
-  var users_array = []
-  array_query = ["*/30 * * * *", "* */1 * * *", "* */2 * * *"]
-  for (query_schedule of array_query) {
-    try {
-      sql = "SELECT user_id, telegram_id FROM user WHERE query_schedule='" + query_schedule + "';"
-      var array = await usersQuery(sql)
-      if (array&&array!==null&&array!=="null"&&array.length>0){
-      await users_array.push(array[0])
-    }
-    }
-    catch(error) {console.log(error) }
-  }
 
+  try {
+    await notify()
+    var users_array = []
+      try {
+          sql = "SELECT user_id, telegram_id FROM user ;"
+          var array = await usersQuery(sql)  
+          if (array && array !== null && array !== "null" && array.length > 0) {
+            await users_array.push(array)
   
-  return await users_array;
+          }
+
+      }
+
+      catch (error) { console.log(error) }
+    
+
+    return await users_array;
+  }
+  catch (err) {
+    console.log(err)
+  }
 }
 
 endpoints.get('/exchange/crypto/notify/', async (req, res) => {
-  await PromiseConnection();
   try {
+    await PromiseConnection();
 
+
+    //publishMessage(await schedule())
     res.json(await schedule())
     res.end
   }
@@ -375,10 +436,11 @@ const { PubSub } = require('@google-cloud/pubsub');
 const pubSubClient = new PubSub();
 //GOOGLE_APPLICATION_CREDENTIALS = '.\cryptobot-369523'
 async function publishMessage(messaging) {
-  // Publishes the message as a string, e.g. "Hello, world!" or JSON.stringify(someObject)
-  const dataBuffer = Buffer.from(messaging);
-
   try {
+    // Publishes the message as a string, e.g. "Hello, world!" or JSON.stringify(someObject)
+    const dataBuffer = Buffer.from(messaging);
+
+
     const messageId = await pubSubClient
       .topic("projects/cryptobot-369523/topics/crypto-prices-topic")
       .publishMessage({ data: dataBuffer });
