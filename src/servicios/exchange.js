@@ -3,6 +3,8 @@ const endpoints = express()
 const axios = require('axios')
 const response = require('../server.js')
 var mysqlpro = require('mysql2/promise');
+const dotenv = require('dotenv')
+dotenv.config({path: '.env'})
 //database    
 //connection variable 
 var con
