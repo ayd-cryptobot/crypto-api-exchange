@@ -4,6 +4,7 @@ const axios = require('axios')
 const response = require('../server.js')
 var mysqlpro = require('mysql2/promise');
 const dotenv = require('dotenv')
+const date_format = require('date-and-time')
 dotenv.config({path: '.env'})
 //database    
 //connection variable 
@@ -17,8 +18,6 @@ async function PromiseConnection() {
   });
 
 }
-
-
 
 
 
@@ -58,6 +57,8 @@ async function createFollow(user_id, crypto_name, currency_pair) {
 }catch(error)
 {
   console.log(error)
+  res.json({ "message": "follow error" });
+    res.end;
   return
 }
 
@@ -309,9 +310,8 @@ endpoints.post('/exchange/crypto/price', async (req, res) => {
     var crypto = req.body.crypto
     var range = req.body.dateRange
     var arregloCryptos = []
-    actual_date;
-    console.log(date)
-    const response = await axios.get(config.api_exchange_history + crypto + '/market_chart?vs_currency=USD&days=' + range + '&interval=daily')
+    url= await config.api_exchange_history + crypto + '/market_chart?vs_currency=USD&days=' + range + '&interval=daily'
+    const response = await axios.get(url)
     const datos = response.data.prices
     let cryptoMoneda = {
     }
@@ -334,21 +334,21 @@ endpoints.post('/exchange/crypto/price', async (req, res) => {
     cryptoMoneda = historic_price
     console.log(cryptoMoneda)
     arregloCryptos = cryptoMoneda
-
+    var message = {
+      "name": crypto,
+      "currency_pair": "USD",
+      "historic_price": arregloCryptos
+  
+    }
+    console.log(message)
+  
+    res.json(message);
+    res.end;
 
   } catch (error) {
-    // console.log(error)
+     console.log(error)
   }
-  var message = {
-    "name": crypto,
-    "currency_pair": "USD",
-    "historic_price": arregloCryptos
 
-  }
-  console.log(message)
-
-  res.json(message);
-  res.end;
 })
 
 endpoints.post('/exchange/accounts/event', async (req, res) => {
