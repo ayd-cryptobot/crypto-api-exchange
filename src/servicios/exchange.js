@@ -5,10 +5,11 @@ const response = require('../server.js')
 var mysqlpro = require('mysql2/promise');
 const dotenv = require('dotenv')
 const date_format = require('date-and-time')
-dotenv.config({path: '.env'})
+dotenv.config({ path: '.env' })
 //database    
 //connection variable 
 var con
+//creates conection to  server
 async function PromiseConnection() {
   con = await mysqlpro.createConnection({
     host: process.env.DB_HOST,
@@ -34,132 +35,141 @@ const config = require('../config/config')
 const CoinGecko = require('coingecko-api');
 const CoinGeckoClient = new CoinGecko();
 
-//3. Make calls
-//delays functions
-function sleep(ms) {
-  return new Promise((resolve) => {
-    setTimeout(resolve, ms);
-  });
-}
-
+//creates news follows for the user using the crypto name(list) and currency(list)
 async function createFollow(user_id, crypto_name, currency_pair) {
-  try{
-  let i = 0;
-  while (i < crypto_name.length) {
+  //try incase of error in list
+  try {
+    let i = 0;
+    //insert every follow depending on the crypto list length (user name, crypto[number in the list], currency )
+    while (i < crypto_name.length) {
 
-    var sql = "INSERT INTO follow (user_id,crypto_name,currency_pair) VALUES ('" + user_id + "','" + crypto_name[i] + "','" + currency_pair + "');";
-    result = await con.query(sql)
-    console.log("1 follow inserted");
+      var sql = "INSERT INTO follow (user_id,crypto_name,currency_pair) VALUES ('" + user_id + "','" + crypto_name[i] + "','" + currency_pair + "');";
+      result = await con.query(sql)
+      console.log("1 follow inserted");
 
-    i++;
+      i++;
+    }
+
+  } catch (error) {
+    console.log(error)
+    res.json({ "message": "follow error" });
+    res.end;
+    return
   }
 
-}catch(error)
-{
-  console.log(error)
-  res.json({ "message": "follow error" });
-    res.end;
-  return
 }
-
-}
-
+//deletes the old follows to avoid duplicates and errors
 async function resetFollow(user_id) {
+  //gets follows from the id of the user 
+
   try {
     var sql = "SELECT id_string FROM follow WHERE  (user_id='" + user_id + "')";
     result = await con.query(sql)
   }
+  //in case there aren´t follows the function catch and ends
   catch (err) {
     console.log("new follow")
     return
   }
+  //deletes follow from the id of the user 
   try {
     var sql = "DELETE FROM follow WHERE(user_id='" + user_id + "');";
     result = await con.query(sql)
 
     console.log("1 follow inserted");
   }
-catch(error)
-{
-  console.log(error)
-  return
-}
+  //in case there aren´t follows the function catch and ends
+  catch (error) {
+    console.log(error)
+    return
+  }
 }
 
+//gets the user id in the database based on the telegram id related to it
 async function getUserByTelegram(telegram_id) {
-  try{
-  var rta;
-  var sql = "SELECT user_id FROM user WHERE  (telegram_id='" + telegram_id + "')";
-
-  result = await con.query(sql)
-
-  rta = await (result[0][0].user_id)
-
-  console.log(rta + "rta")
-
-  return rta;
-}catch(error)
-{
-  console.log(error)
-  return
+  try {
+    //respond variable and sql string variable
+    var rta;
+    var sql = "SELECT user_id FROM user WHERE  (telegram_id='" + telegram_id + "')";
+    //runs sql
+    result = await con.query(sql)
+    //get only the first result of reciving a list of extra data
+    rta = await (result[0][0].user_id)
+    //checks variable
+    console.log(rta + "rta")
+    //returns
+    return rta;
+  } catch (error) {
+    console.log(error)
+    return
+  }
 }
-}
 
-
+//hears endpoint for follows to the exchange microservice
 endpoints.post('/exchange/crypto/follow', async (req, res) => {
 
   console.log(req.body, "este es el body")
 
   try {
-    //const buff = Buffer.from(req.body.message.data, 'base64');
-    //const buff = Buffer.from(req.body.message.data, 'base64');
-    const buff = req.body;
-    //const id=buff.toString('utf-8')
-    const id = buff;
+
+    //body of the request
+    const id = req.body;
     console.log(id)
     crypto_name = id.following_cryptos;
-
     currency_pair = id.currency_pair;
-    await PromiseConnection();
 
+    //creates connection and waits for calls
+    await PromiseConnection();
     console.log("Connected!");
+
+    //calls function to get the user name based on the id
     const user_id = await getUserByTelegram(id.telegram_id);
+
+    //deletes the old follows to avoid duplicates and errors
     await resetFollow(user_id);
+
+    //creates news follows for the user using the crypto name(list) and currency(list)
     await createFollow(user_id, crypto_name, currency_pair);
+
+    //end conection and checks by using message
     res.json({ "message": "follows inserted" });
     res.end;
   } catch
   {
+    //end conection and responds for error case
     res.json({ "message": "follow error" });
     res.end;
   }
 })
 
-
+//gets currency of all cryptos that the users can follow
 async function notify() {
   try {
+    //external list from function
     cryptos_array_base = {};
+    //variables for notify
     var array_crypto = [];
     var string_crypto
     var sqlNotify;
-    //conn.execute(async function(err) {
-
-    //  if (err) throw err;
 
     console.log("Connected!");
-
+    //gets crypto name from crypto currncy abreviation
     sqlNotify = "SELECT crypto_name FROM crypto ";
     var result = await con.query(sqlNotify)
+
+    //gets crypto list (use only first case in case of extra data)
     result = result[0]
 
-
+    //avalible currency on API and names that use
     currency_pair_array = ["USD", "EUR"];
-
     i = 0;
+
+    //sends crypto to get API currency value and add it to the response
     for (crypto_rta of result) {
 
       if (crypto_rta.crypto_name) {
         await array_crypto.push(crypto_rta.crypto_name);
+        //avoids adding %2C at the end
         if (i != result.length - 1) {
           string_crypto += crypto_rta.crypto_name + "%2C"
         }
@@ -177,24 +187,32 @@ async function notify() {
     console.log(error)
 
   }
+  //saves response in external variable
   cryptos_array_base = response
   return response
 
 }
+
+//gets crypto name and currency from the follows of the user
 async function selectCryptoToUser(user_id) {
   rta = ""
   stringMoneda = ""
+
   try {
+    //run sql to get crypto name and currency from the follows of the user
     sqlcurrency = "SELECT crypto_name, currency_pair FROM follow WHERE  (user_id='" + user_id + "')";
     var resultCurrency = await con.query(sqlcurrency)
-
+    //gets only first value in case of extra data
     resultCurrency = await resultCurrency[0]
-
+    //gest currency that the user use for his/her follows
     currency_pair = "" + resultCurrency[0].currency_pair;
-    stringMoneda = stringMoneda+ "currency: " + currency_pair
+    stringMoneda = stringMoneda + "currency: " + currency_pair
+
+    // value of cryptos from external list use on notify()
     const keys = Object.keys(cryptos_array_base.data)
 
     const currency_keys = Object.keys(cryptos_array_base.data.bitcoin)
+    //organize values for presentacion on telegram chat 
     for (key of keys) {
       for (datas of resultCurrency) {
 
@@ -221,25 +239,29 @@ async function selectCryptoToUser(user_id) {
 
 }
 
-
+//runs sql for the user schedule and publish the currencys that every user follows to their chats
 async function usersQuery(sql) {
   try {
     var users_array = []
+    //sql for result
     console.log(sql + "outworks")
+    //gets user_id and telegram_id from users table
     result = await con.query(sql)
 
+    //checks if there are users and use first value of list in case of extra data
     if (result[0]) {
+      //links every crypto to the user that follows it to send the currency
       for (users of result[0]) {
+        //gets message for notification depending of the follows of the user
         var notification = await selectCryptoToUser(users.user_id)
-
+        //add tittle
         message = "CRYPTO PRICES \ud83d\udcb8 \n" + notification
         console.log(message)
         message = {
           chat_id: users.telegram_id,
           message
-
-
         }
+        // publish message on telegram
         if (message) {
           await users_array.push(JSON.stringify(message))
           publishMessage(JSON.stringify(message))
@@ -248,45 +270,46 @@ async function usersQuery(sql) {
 
     }
 
-
+    // return may not be required (test on ambient first) MESSAGEDEV1
     return users_array
   }
   catch (err) {
     console.log(err)
   }
 }
-
+//schedule fuction that sends notification through other fuctions to the user of the service
 async function schedule() {
 
   try {
+
     await notify()
     var users_array = []
-      try {
-          sql = "SELECT user_id, telegram_id FROM user ;"
-          var array = await usersQuery(sql)  
-          if (array && array !== null && array !== "null" && array.length > 0) {
-            await users_array.push(array)
-  
-          }
+    try {
+      //gets user_id and telegram_id from users table
+      sql = "SELECT user_id, telegram_id FROM user ;"
+      var array = await usersQuery(sql)
+      //adds array to result as long as is not empty
+      if (array && array !== null && array !== "null" && array.length > 0) {
+        await users_array.push(array)
 
       }
 
-      catch (error) { console.log(error) }
-    
+    }
 
+    catch (error) { console.log(error) }
+
+    // return may not be required (test on ambient first) MESSAGEDEV1
     return await users_array;
   }
   catch (err) {
     console.log(err)
   }
 }
-
+//everytime is activated runs the fuctions to notify all users of actual the currecy prices they follow in an designated interval of time
 endpoints.get('/exchange/crypto/notify/', async (req, res) => {
   try {
     await PromiseConnection();
-
-
-    //publishMessage(await schedule())
+    //ask for a periodical schedule to notify users
     res.json(await schedule())
     res.end
   }
@@ -299,72 +322,75 @@ endpoints.get('/exchange/crypto/notify/', async (req, res) => {
 })
 
 
-
+//gets prices of a crypto by petion of the user in a range of days 
 endpoints.post('/exchange/crypto/price', async (req, res) => {
   console.log(req.body, "este es el body")
   try {
     await PromiseConnection();
+    //date variables
     var actual_date = new Date()
     var date = new Date()
-
+    //variables for cryptos
     var crypto = req.body.crypto
     var range = req.body.dateRange
-    var arregloCryptos = []
-    url= await config.api_exchange_history + crypto + '/market_chart?vs_currency=USD&days=' + range + '&interval=daily'
+    //URL to connect to API and fetch prices of the user 
+    url = await config.api_exchange_history + crypto + '/market_chart?vs_currency=USD&days=' + range + '&interval=daily'
     const response = await axios.get(url)
+    //gets prices from url response
     const datos = response.data.prices
-    let cryptoMoneda = {
-    }
-
+    //MESSAGEDEV2 test use on environment 
     const valores = datos
+
     const historic_price = []
+    //converts date to oldest day in the range to start from there
     actual_date.setDate(actual_date.getDate() - valores.length + 1)
+    //push values of historic prices on message
     for (let valor of valores) {
+      //sets format of the date 
       date = date_format.format(actual_date, 'DD/MM/YYYY')
+      //fix decimal values
       const valorGuardar = await parseFloat(valor[1].toFixed(3))
+      //push a historic value on the array 
       historic_price.push({
         "date": date,
         "price": valorGuardar
       }
       )
 
-
+      //moves dates value to the next day of the range
       actual_date.setDate(actual_date.getDate() + 1)
     }
-    cryptoMoneda = historic_price
-    console.log(cryptoMoneda)
-    arregloCryptos = cryptoMoneda
+    //checks historic prices 
+    console.log(historic_price)
     var message = {
       "name": crypto,
       "currency_pair": "USD",
-      "historic_price": arregloCryptos
-  
+      "historic_price": historic_price
+
     }
     console.log(message)
-  
+    //sends message to telegram
     res.json(message);
     res.end;
 
   } catch (error) {
-     console.log(error)
+    console.log(error)
   }
 
 })
-
+//creates/edit/deletes account of the database depending of the operation type and values sended 
+//(can be implemented in other microservices without many changes)
 endpoints.post('/exchange/accounts/event', async (req, res) => {
   try {
-
+    //codificates message values
     const buff = Buffer.from(req.body.message.data, 'base64');
     const id = JSON.parse(buff.toString('utf-8'))
     console.log(id, "este es el body")
     await PromiseConnection();
 
-    //const buff = Buffer.from(req.body.message.data, 'base64');
-    //const buff = Buffer.from(req.body.message.data, 'base64');
-
-    //const id=buff.toString('utf-8')
 
     try {
+      //gets operation for switch cases
       var operation_type = id.operation_type
       console.log(operation_type);
     }
@@ -374,33 +400,29 @@ endpoints.post('/exchange/accounts/event', async (req, res) => {
     }
     console.log("Connected!");
     var telegram_user_id = id.telegram_user_id
+    //looks the operation asked for the user in the operation type string
     switch (operation_type) {
-
+      //creates account using only the telegram id  and responds with success message
       case ("create"):
-        // var first_name=id.first_name
-        // var last_name=id.last_name
-        // var email=id.email
-        // var username=id.username
-        //     var sql = "INSERT INTO user (telegram_id,first_name, last_name,email  username,  rol) VALUES ('"+telegram_user_id+"','"+first_name+"','"+ last_name+"','"+ email+"','"+ username+"','cliente');";
         var sql = "INSERT INTO user (telegram_id) VALUES ('" + telegram_user_id + "');";
         result = await con.query(sql)
         await res.json({ "message": "account created" });
 
         break;
-
+      //MESSAGEDEV3 CHECK IF THERE IS STILL NECESITY FOR THIS
       case ("update"):
 
 
         await res.json({ "message": "ok" });
         break;
-
+      //deletes account using only the telegram id  and responds with success message
       case ("delete"):
         var sql = "DELETE FROM user WHERE (telegram_id='" + telegram_user_id + "');";
         result = await con.query(sql)
         await res.json({ "message": "account deleted" });
 
         break;
-
+      //if the event string doesnt match an operation returns error
       default:
         await res.json({ "error": "event not found" });
 
@@ -418,28 +440,24 @@ endpoints.post('/exchange/accounts/event', async (req, res) => {
   }
 })
 
-//gcloud auth application-default login   
-/**
- * TODO(developer): Uncomment these variables before running the sample.
- */
-// const topicNameOrId = 'YOUR_TOPIC_NAME_OR_ID';
-// const data = JSON.stringify({foo: 'bar'});
 
 // Imports the Google Cloud client library
 const { PubSub } = require('@google-cloud/pubsub');
 
 // Creates a client; cache this for further use
 const pubSubClient = new PubSub();
-//GOOGLE_APPLICATION_CREDENTIALS = '.\cryptobot-369523'
+GOOGLE_APPLICATION_CREDENTIALS = '.\cryptobot-369523'
 async function publishMessage(messaging) {
   try {
-    // Publishes the message as a string, e.g. "Hello, world!" or JSON.stringify(someObject)
+    // converts buffer from messaging
     const dataBuffer = Buffer.from(messaging);
 
 
     const messageId = await pubSubClient
+      //topic data
       .topic("projects/cryptobot-369523/topics/crypto-prices-topic")
       .publishMessage({ data: dataBuffer });
+
     console.log(`Message ${messageId} published.`);
   } catch (error) {
     console.error(`Received error while publishing: ${error.message}`);
