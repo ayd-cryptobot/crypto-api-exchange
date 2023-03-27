@@ -305,6 +305,35 @@ async function schedule() {
     console.log(err)
   }
 }
+
+//schedule fuction that sends notification through other fuctions to the user of the service
+endpoints.post('/exchange/crypto/priceActual', async (req, res) => {
+ 
+    try {
+      var string_crypto = req.body.crypto
+      cryptos_array_base=[]
+      //gets user_id and telegram_id from users table
+      for (let valor of string_crypto) {
+      var response = await config.api_exchange_simple + valor + '&vs_currencies=USD%2'
+      response = await axios.get(response)
+      console.log(response.data)
+      cryptos_array_base.push({
+        "name": valor,
+        "price": response.data[valor]["usd"]
+      })
+      }
+      
+      //adds array to result as long as is not empty
+      res.json(cryptos_array_base)
+      res.end
+    }
+    catch (error) { console.log(error) }
+
+    // return may not be required (test on ambient first) MESSAGEDEV1
+
+  }
+)
+
 //everytime is activated runs the fuctions to notify all users of actual the currecy prices they follow in an designated interval of time
 endpoints.get('/exchange/crypto/notify/', async (req, res) => {
   try {
@@ -335,6 +364,7 @@ endpoints.post('/exchange/crypto/price', async (req, res) => {
     var range = req.body.dateRange
     //URL to connect to API and fetch prices of the user 
     url = await config.api_exchange_history + crypto + '/market_chart?vs_currency=USD&days=' + range + '&interval=daily'
+    console.log(url)
     const response = await axios.get(url)
     //gets prices from url response
     const datos = response.data.prices
