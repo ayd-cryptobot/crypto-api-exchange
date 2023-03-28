@@ -1,16 +1,15 @@
-FROM node:19
-
+# Build stage
+FROM node:alpine AS build
 WORKDIR /app
-
-COPY ["package.json", "package-lock.json*", "./"]
-
-
+COPY package*.json ./
 RUN npm install --production
-
 COPY . .
+RUN npm run build && rm -rf node_modules
 
-ENV PORT=5000
-
-EXPOSE 5000
-
+# Production stage
+FROM node:alpine
+WORKDIR /app
+COPY --from=build /app/dist ./dist
+ENV PORT=8100
+EXPOSE 8100
 CMD [ "npm", "start" ]
