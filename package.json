@@ -27,6 +27,9 @@
     "nodemon": "^2.0.20",
     "npm": "^9.6.1"
   },
+  "engines": {
+    "node": "19-alpine3.14"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/MartinMedinaRuvian/dockerexample1.git"

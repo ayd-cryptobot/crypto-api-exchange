@@ -1,15 +1,17 @@
 # Build stage
-FROM node:alpine AS build
+FROM node:14-alpine AS build
 WORKDIR /app
 COPY package*.json ./
-RUN npm install --production
-COPY . .
-RUN npm run build && rm -rf node_modules
+RUN apk add --no-cache npm && \
+    npm install && \
+    npm prune --production
 
 # Production stage
-FROM node:alpine
+FROM node:14-alpine
 WORKDIR /app
-COPY --from=build /app/dist ./dist
+COPY . /app/.
+COPY package*.json ./
+RUN npm install --production
 ENV PORT=8100
 EXPOSE 8100
 CMD [ "npm", "start" ]
