@@ -11,7 +11,7 @@
   "author": "juan pablo cardenas quiñonez",
   "license": "ISC",
   "dependencies": {
-    "@google-cloud/pubsub": "^3.2.1",
+    "@google-cloud/pubsub": "^3.4.1",
     "axios": "^1.1.3",
     "coingecko-api": "^1.0.10",
     "cors": "^2.8.5",
@@ -28,7 +28,7 @@
     "npm": "^9.6.1"
   },
   "engines": {
-    "node": "19-alpine3.14"
+    "node": "18"
   },
   "repository": {
     "type": "git",
