@@ -4,8 +4,8 @@
   "description": "cryptobot docker",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "npx nodemon src/app.js"
+    "test": "npx nodemon src/app.js",
+    "start": "node src/app.js"
   },
   "keywords": [],
   "author": "juan pablo cardenas quiñonez",
