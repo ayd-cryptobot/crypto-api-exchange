@@ -4,7 +4,7 @@ function main () {
     /***
      * Configuro el puerto en el que va escuchar el server
      */
-    app.set('port', process.env.PORT || 8100)
+    app.set('port', process.env.PORT || 8080)
     /**
      * Preparo o le asigno el puerto donde va escuchar el server
      */

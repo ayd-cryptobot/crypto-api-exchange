@@ -28,7 +28,7 @@
     "npm": "^9.6.1"
   },
   "engines": {
-    "node": "18"
+    "node": "14-alpine"
   },
   "repository": {
     "type": "git",

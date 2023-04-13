@@ -1,10 +1,8 @@
 runtime: nodejs18
 
-
 # Configuración de escalado automático
 automatic_scaling:
   # Modifica estos valores según tus necesidades.
-
   min_instances: 1
   max_instances: 5
   target_cpu_utilization: 0.5
@@ -15,17 +13,16 @@ automatic_scaling:
 handlers:
   # Define a wildcard handler for all URLs.
   - url: /.*
-    script: exchange.js
-    timeout: 60s
-    secure: always
+    script: node src/server.js
+
 
 
 # Configuración de variables de entorno
 env_variables:
   # Agrega aquí las variables de entorno que necesite tu aplicación
   # En este ejemplo, se establece el puerto del servidor en 8080
-  PORT: 8100
+  PORT: 8080
   DB_HOST : 34.74.162.138
-DB_USER : root
-DB_PASS :  mAu&lb?5Ify}D,}S
-DB_DATABASE : exchange
+  DB_USER : root
+  DB_PASS :  mAu&lb?5Ify}D,}S
+  DB_DATABASE : exchange
