@@ -476,7 +476,7 @@ const { PubSub } = require('@google-cloud/pubsub');
 
 // Creates a client; cache this for further use
 const pubSubClient = new PubSub();
-GOOGLE_APPLICATION_CREDENTIALS = '.\cryptobot-369523'
+GOOGLE_APPLICATION_CREDENTIALS = '.\cryptobot-345516'
 async function publishMessage(messaging) {
   try {
     // converts buffer from messaging
@@ -485,7 +485,7 @@ async function publishMessage(messaging) {
 
     const messageId = await pubSubClient
       //topic data
-      .topic("projects/cryptobot-369523/topics/crypto-prices-topic")
+      .topic("projects/cryptobot-345516/topics/accounts-events-topic")
       .publishMessage({ data: dataBuffer });
 
     console.log(`Message ${messageId} published.`);

@@ -18,7 +18,7 @@ CREATE TABLE `follow` (
 ) ENGINE=InnoDB AUTO_INCREMENT=76 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
 CREATE TABLE `user` (
   `user_id` int NOT NULL AUTO_INCREMENT,
-  `telegram_id` int NOT NULL,
+  `telegram_id` bigint NOT NULL,
   `query_schedule` varchar(45) DEFAULT NULL,
   PRIMARY KEY (`user_id`),
   UNIQUE KEY `telegram_id_UNIQUE` (`telegram_id`),
