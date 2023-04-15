@@ -2,13 +2,13 @@ const express = require('express')
 const endpoints = express()
 const axios = require('axios')
 const response = require('../server.js')
-var mysqlpro = require('mysql2/promise');
+let mysqlpro = require('mysql2/promise');
 const dotenv = require('dotenv')
 const date_format = require('date-and-time')
 dotenv.config({ path: '.env' })
 //database    
 //connection variable 
-var con
+let con
 //creates conection to  server
 async function PromiseConnection() {
   con = await mysqlpro.createConnection({
@@ -23,13 +23,13 @@ async function PromiseConnection() {
 
 
 //exchange variables
-var crypto_name;
+let crypto_name;
 
-var currency_pair = "";
+let currency_pair = "";
 
-var result;
+let result;
 
-var cryptos_array_base;
+let cryptos_array_base;
 
 const config = require('../config/config')
 const CoinGecko = require('coingecko-api');
@@ -43,7 +43,7 @@ async function createFollow(user_id, crypto_name, currency_pair) {
     //insert every follow depending on the crypto list length (user name, crypto[number in the list], currency )
     while (i < crypto_name.length) {
 
-      var sql = "INSERT INTO follow (user_id,crypto_name,currency_pair) VALUES ('" + user_id + "','" + crypto_name[i] + "','" + currency_pair + "');";
+      let sql = "INSERT INTO follow (user_id,crypto_name,currency_pair) VALUES ('" + user_id + "','" + crypto_name[i] + "','" + currency_pair + "');";
       result = await con.query(sql)
       console.log("1 follow inserted");
 
@@ -53,7 +53,7 @@ async function createFollow(user_id, crypto_name, currency_pair) {
   } catch (error) {
     console.log(error)
     res.json({ "message": "follow error" });
-    res.end;
+    res.end();
     return
   }
 
@@ -63,7 +63,7 @@ async function resetFollow(user_id) {
   //gets follows from the id of the user 
 
   try {
-    var sql = "SELECT id_string FROM follow WHERE  (user_id='" + user_id + "')";
+    let sql = "SELECT id_string FROM follow WHERE  (user_id='" + user_id + "')";
     result = await con.query(sql)
   }
   //in case there aren´t follows the function catch and ends
@@ -73,7 +73,7 @@ async function resetFollow(user_id) {
   }
   //deletes follow from the id of the user 
   try {
-    var sql = "DELETE FROM follow WHERE(user_id='" + user_id + "');";
+    let sql = "DELETE FROM follow WHERE(user_id='" + user_id + "');";
     result = await con.query(sql)
 
     console.log("1 follow inserted");
@@ -89,8 +89,8 @@ async function resetFollow(user_id) {
 async function getUserByTelegram(telegram_id) {
   try {
     //respond variable and sql string variable
-    var rta;
-    var sql = "SELECT user_id FROM user WHERE  (telegram_id='" + telegram_id + "')";
+    let rta;
+    let sql = "SELECT user_id FROM user WHERE  (telegram_id='" + telegram_id + "')";
     //runs sql
     result = await con.query(sql)
     //get only the first result of reciving a list of extra data
@@ -133,12 +133,12 @@ endpoints.post('/exchange/crypto/follow', async (req, res) => {
 
     //end conection and checks by using message
     res.json({ "message": "follows inserted" });
-    res.end;
+    res.end();
   } catch
   {
     //end conection and responds for error case
     res.json({ "message": "follow error" });
-    res.end;
+    res.end();
   }
 })
 
@@ -148,27 +148,27 @@ async function notify() {
     //external list from function
     cryptos_array_base = {};
     //variables for notify
-    var array_crypto = [];
-    var string_crypto
-    var sqlNotify;
-
+    
+    let string_crypto
+    let sqlNotify;
+    var array_crypto=[]
     console.log("Connected!");
     //gets crypto name from crypto currncy abreviation
     sqlNotify = "SELECT crypto_name FROM crypto ";
-    var result = await con.query(sqlNotify)
+    let result = await con.query(sqlNotify)
 
     //gets crypto list (use only first case in case of extra data)
     result = result[0]
 
     //avalible currency on API and names that use
-    currency_pair_array = ["USD", "EUR"];
-    i = 0;
+    
+    let i = 0;
 
     //sends crypto to get API currency value and add it to the response
-    for (crypto_rta of result) {
+    for (let crypto_rta of result) {
 
       if (crypto_rta.crypto_name) {
-        await array_crypto.push(crypto_rta.crypto_name);
+         array_crypto.push(crypto_rta.crypto_name);
         //avoids adding %2C at the end
         if (i != result.length - 1) {
           string_crypto += crypto_rta.crypto_name + "%2C"
@@ -180,9 +180,9 @@ async function notify() {
       i++
     }
 
-    var response = await config.api_exchange_simple + string_crypto + '&vs_currencies=USD%2CEUR'
+    var response =  config.api_exchange_simple + string_crypto + '&vs_currencies=USD%2CEUR'
     response = await axios.get(response)
-
+  console.log(response)
   } catch (error) {
     console.log(error)
 
@@ -195,13 +195,13 @@ async function notify() {
 
 //gets crypto name and currency from the follows of the user
 async function selectCryptoToUser(user_id) {
-  rta = ""
-  stringMoneda = ""
+  let rta = ""
+  let stringMoneda = ""
 
   try {
     //run sql to get crypto name and currency from the follows of the user
-    sqlcurrency = "SELECT crypto_name, currency_pair FROM follow WHERE  (user_id='" + user_id + "')";
-    var resultCurrency = await con.query(sqlcurrency)
+    let sqlcurrency = "SELECT crypto_name, currency_pair FROM follow WHERE  (user_id='" + user_id + "')";
+    let resultCurrency = await con.query(sqlcurrency)
     //gets only first value in case of extra data
     resultCurrency = await resultCurrency[0]
     //gest currency that the user use for his/her follows
@@ -213,21 +213,21 @@ async function selectCryptoToUser(user_id) {
 
     const currency_keys = Object.keys(cryptos_array_base.data.bitcoin)
     //organize values for presentacion on telegram chat 
-    for (key of keys) {
-      for (datas of resultCurrency) {
+    for (let key of keys) {
+      for (let datas of resultCurrency) {
 
-        var name = datas.crypto_name
+        let name = datas.crypto_name
 
         if (key == name) {
-          for (currency_key of currency_keys) {
+          for (let currency_key of currency_keys) {
             if (currency_key == currency_pair.toLowerCase()) {
-              stringMoneda = stringMoneda + " \n " + name + " \n " + cryptos_array_base.data[key][currency_key];
+              stringMoneda = await stringMoneda + " \n " + name + " \n " + cryptos_array_base.data[key][currency_key];
             }
           }
         }
       }
     }
-    rta = await " " + stringMoneda + "\n";
+    rta =  " " + stringMoneda + "\n";
     return rta;
 
 
@@ -242,7 +242,7 @@ async function selectCryptoToUser(user_id) {
 //runs sql for the user schedule and publish the currencys that every user follows to their chats
 async function usersQuery(sql) {
   try {
-    var users_array = []
+    let users_array = []
     //sql for result
     console.log(sql + "outworks")
     //gets user_id and telegram_id from users table
@@ -251,11 +251,11 @@ async function usersQuery(sql) {
     //checks if there are users and use first value of list in case of extra data
     if (result[0]) {
       //links every crypto to the user that follows it to send the currency
-      for (users of result[0]) {
+      for (let users of result[0]) {
         //gets message for notification depending of the follows of the user
-        var notification = await selectCryptoToUser(users.user_id)
+        let notification = await selectCryptoToUser(users.user_id)
         //add tittle
-        message = "CRYPTO PRICES \ud83d\udcb8 \n" + notification
+        let message = "CRYPTO PRICES \ud83d\udcb8 \n" + notification
         console.log(message)
         message = {
           chat_id: users.telegram_id,
@@ -263,8 +263,8 @@ async function usersQuery(sql) {
         }
         // publish message on telegram
         if (message) {
-          await users_array.push(JSON.stringify(message))
-          publishMessage(JSON.stringify(message))
+           users_array.push(JSON.stringify(message))
+           publishNotify(JSON.stringify(message))
         }
       }
 
@@ -283,14 +283,14 @@ async function schedule() {
   try {
 
     await notify()
-    var users_array = []
+    let users_array = []
     try {
       //gets user_id and telegram_id from users table
-      sql = "SELECT user_id, telegram_id FROM user ;"
-      var array = await usersQuery(sql)
+      let sql = "SELECT user_id, telegram_id FROM user ;"
+      let array = await usersQuery(sql)
       //adds array to result as long as is not empty
       if (array && array !== null && array !== "null" && array.length > 0) {
-        await users_array.push(array)
+         users_array.push(array)
 
       }
 
@@ -299,7 +299,7 @@ async function schedule() {
     catch (error) { console.log(error) }
 
     // return may not be required (test on ambient first) MESSAGEDEV1
-    return await users_array;
+    return  users_array;
   }
   catch (err) {
     console.log(err)
@@ -310,11 +310,11 @@ async function schedule() {
 endpoints.post('/exchange/crypto/priceActual', async (req, res) => {
  
     try {
-      var string_crypto = req.body.crypto
+      let string_crypto = req.body.crypto
       cryptos_array_base=[]
       //gets user_id and telegram_id from users table
       for (let valor of string_crypto) {
-      var response = await config.api_exchange_simple + valor + '&vs_currencies=USD%2'
+      let response =  config.api_exchange_simple + valor + '&vs_currencies=USD%2'
       response = await axios.get(response)
       console.log(response.data)
       cryptos_array_base.push({
@@ -325,7 +325,7 @@ endpoints.post('/exchange/crypto/priceActual', async (req, res) => {
       
       //adds array to result as long as is not empty
       res.json(cryptos_array_base)
-      res.end
+      res.end()
     }
     catch (error) { console.log(error) }
 
@@ -340,12 +340,12 @@ endpoints.get('/exchange/crypto/notify/', async (req, res) => {
     await PromiseConnection();
     //ask for a periodical schedule to notify users
     res.json(await schedule())
-    res.end
+    res.end()
   }
   catch (err) {
     console.log(err)
     res.json("internal fuction error")
-    res.end
+    res.end()
   }
 
 })
@@ -357,13 +357,13 @@ endpoints.post('/exchange/crypto/price', async (req, res) => {
   try {
     await PromiseConnection();
     //date variables
-    var actual_date = new Date()
-    var date = new Date()
+    let actual_date = new Date()
+    let date = new Date()
     //variables for cryptos
-    var crypto = req.body.crypto
-    var range = req.body.dateRange
+    let crypto = req.body.crypto
+    let range = req.body.dateRange
     //URL to connect to API and fetch prices of the user 
-    url = await config.api_exchange_history + crypto + '/market_chart?vs_currency=USD&days=' + range + '&interval=daily'
+    let url =  config.api_exchange_history + crypto + '/market_chart?vs_currency=USD&days=' + range + '&interval=daily'
     console.log(url)
     const response = await axios.get(url)
     //gets prices from url response
@@ -379,7 +379,7 @@ endpoints.post('/exchange/crypto/price', async (req, res) => {
       //sets format of the date 
       date = date_format.format(actual_date, 'DD/MM/YYYY')
       //fix decimal values
-      const valorGuardar = await parseFloat(valor[1].toFixed(3))
+      const valorGuardar = parseFloat(valor[1].toFixed(3))
       //push a historic value on the array 
       historic_price.push({
         "date": date,
@@ -392,7 +392,7 @@ endpoints.post('/exchange/crypto/price', async (req, res) => {
     }
     //checks historic prices 
     console.log(historic_price)
-    var message = {
+    let message = {
       "name": crypto,
       "currency_pair": "USD",
       "historic_price": historic_price
@@ -401,7 +401,7 @@ endpoints.post('/exchange/crypto/price', async (req, res) => {
     console.log(message)
     //sends message to telegram
     res.json(message);
-    res.end;
+    res.end();
 
   } catch (error) {
     console.log(error)
@@ -417,7 +417,7 @@ endpoints.post('/exchange/accounts/event', async (req, res) => {
     const id = JSON.parse(buff.toString('utf-8'))
     console.log(id, "este es el body")
     await PromiseConnection();
-
+    let sql
 
     try {
       //gets operation for switch cases
@@ -426,15 +426,15 @@ endpoints.post('/exchange/accounts/event', async (req, res) => {
     }
     catch (err) {
       res.json("invalid operation")
-      res.end
+      res.end()
     }
     console.log("Connected!");
-    var telegram_user_id = id.telegram_user_id
+    let telegram_user_id = id.telegram_user_id
     //looks the operation asked for the user in the operation type string
     switch (operation_type) {
       //creates account using only the telegram id  and responds with success message
       case ("create"):
-        var sql = "INSERT INTO user (telegram_id) VALUES ('" + telegram_user_id + "');";
+         sql = "INSERT INTO user (telegram_id) VALUES ('" + telegram_user_id + "');";
         result = await con.query(sql)
         await res.json({ "message": "account created" });
 
@@ -447,7 +447,7 @@ endpoints.post('/exchange/accounts/event', async (req, res) => {
         break;
       //deletes account using only the telegram id  and responds with success message
       case ("delete"):
-        var sql = "DELETE FROM user WHERE (telegram_id='" + telegram_user_id + "');";
+         sql = "DELETE FROM user WHERE (telegram_id='" + telegram_user_id + "');";
         result = await con.query(sql)
         await res.json({ "message": "account deleted" });
 
@@ -459,14 +459,14 @@ endpoints.post('/exchange/accounts/event', async (req, res) => {
         break;
     }
 
-    res.end
+    res.end()
   }
   catch (err) {
     console.log(err)
     await res.json("error")
 
 
-    res.end
+    res.end()
   }
 })
 
@@ -486,6 +486,24 @@ async function publishMessage(messaging) {
     const messageId = await pubSubClient
       //topic data
       .topic("projects/cryptobot-345516/topics/accounts-events-topic")
+      .publishMessage({ data: dataBuffer });
+
+    console.log(`Message ${messageId} published.`);
+  } catch (error) {
+    console.error(`Received error while publishing: ${error.message}`);
+    process.exitCode = 1;
+  }
+}
+
+async function publishNotify(messaging) {
+  try {
+    // converts buffer from messaging
+    const dataBuffer = Buffer.from(messaging);
+
+
+    const messageId = await pubSubClient
+      //topic data
+      .topic("projects/cryptobot-345516/topics/exchange-events-topic")
       .publishMessage({ data: dataBuffer });
 
     console.log(`Message ${messageId} published.`);
